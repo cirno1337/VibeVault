@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VibeVault settings</title>
+  <link rel="stylesheet" href="ui.css" />
+  <style>main { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }</style>
+</head>
+<body>
+<main>
+  <h1>VibeVault collector</h1>
+
+  <h2>Server</h2>
+  <label class="field"><span>VibeVault URL</span>
+    <input type="url" id="serverUrl" placeholder="https://my-server.example-tailnet.ts.net:8787" /></label>
+  <label class="field"><span>Ingest token</span>
+    <input type="password" id="token" autocomplete="off" placeholder="unchanged" /></label>
+  <p class="muted">The token is stored only in this browser profile (extension storage) and is sent only to the URL above.
+    Use an <em>ingest</em> token, never the admin token.</p>
+  <label class="field"><span>Device label</span><input type="text" id="deviceLabel" /></label>
+  <label class="field"><span>Device id</span><input type="text" id="deviceId" pattern="[A-Za-z0-9_.\-]+" /></label>
+  <p class="muted">Part of every event's identity: keep it stable for this browser profile (copy it back after a reinstall).</p>
+  <div class="actions">
+    <button class="primary" id="save">Save</button>
+    <button id="test">Test connection</button>
+  </div>
+  <p id="saveStatus" class="muted"></p>
+
+  <h2>Collection</h2>
+  <label class="row">Collect conversations (global switch) <input type="checkbox" id="global" /></label>
+  <div id="sites"></div>
+  <label class="row">Also collect in private windows (must also be allowed on the extension's details page) <input type="checkbox" id="incognito" /></label>
+
+  <h2>Excluded conversations</h2>
+  <p class="muted">Excluded conversations are never read beyond their id. Excluding one also drops anything of it still queued
+    here; to delete what was already sent, delete the session in VibeVault (needs the admin token).</p>
+  <ul class="plain" id="excluded"></ul>
+
+  <h2>What this extension reads and sends</h2>
+  <ul>
+    <li><strong>Reads</strong>: the visible text of user and assistant messages in the conversation open in the current tab on
+      claude.ai and chatgpt.com, the conversation URL/id/title, and message order.</li>
+    <li><strong>Never reads</strong>: cookies, site storage, auth headers, hidden app state, other tabs or sites, the prompt box
+      draft, uploaded file contents (shown as placeholders), account or profile data.</li>
+    <li><strong>Sends</strong>: only while collection is on for the site and the conversation is not excluded; after a response
+      finishes streaming, in batches, to the VibeVault URL above and nowhere else.</li>
+    <li><strong>Redacts</strong> likely secrets (API keys, tokens, private keys, passwords in assignments) before anything is
+      queued. This is best-effort pattern matching; the server scans again.</li>
+    <li>Private windows are off by default. When the sites change their layout, the extension stops collecting and the popup
+      says "adapter outdated" instead of guessing.</li>
+  </ul>
+</main>
+<script src="options.js" type="module"></script>
+</body>
+</html>

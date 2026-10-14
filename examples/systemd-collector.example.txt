@@ -1,0 +1,23 @@
+# Safety-net timer: re-scan transcripts and flush the spool every 2 minutes, in case a hook was
+# missed or the server was unreachable. Install as user units, then:
+#   systemctl --user enable --now vibevault-collector.timer
+
+# ~/.config/systemd/user/vibevault-collector.service
+[Unit]
+Description=VibeVault collector sync
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/vibevault/env
+ExecStart=%h/.local/bin/vibevault-collector sync --quiet
+
+# ~/.config/systemd/user/vibevault-collector.timer
+[Unit]
+Description=VibeVault collector sync timer
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+[Install]
+WantedBy=timers.target
+
+# ~/.config/vibevault/env  (chmod 600)
+VIBEVAULT_INGEST_TOKEN=<ingest token for this device>

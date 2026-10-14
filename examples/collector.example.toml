@@ -1,0 +1,28 @@
+# ~/.config/vibevault/collector.toml  (chmod 600). Contains NO secrets: tokens come from the
+# environment or a 0600 file.
+[collector]
+enabled = true
+device_id = "pc-arch"                 # unique per machine; e.g. "server-ubuntu" on the home server
+device_label = "Main PC (Arch)"
+# spool_dir = "~/.local/share/vibevault-collector"
+
+# One or more destinations. Every event is queued per destination, so a server that is down
+# never blocks the others, and nothing is lost while it is unreachable.
+[[destination]]
+name = "home"
+url = "http://vibevault.tailnet.example:8787"
+token_env = "VIBEVAULT_INGEST_TOKEN"   # or: token_file = "~/.config/vibevault/token" (must be chmod 600)
+
+[claude_code]
+# projects_dir = "~/.claude/projects"
+exclude_paths = ["~/private/*", "~/clients/nda-*"]   # globs on the session's working directory
+capture_thinking = false                             # reasoning blocks are NOT collected unless enabled
+max_content_chars = 200000
+include_raw_payload = true
+
+[redaction]
+# rules_file = "~/.config/vibevault/redaction-rules.json"   # [{"name": "...", "pattern": "regex"}]
+
+[delivery]
+batch_size = 100
+request_timeout = 15

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VibeVault</title>
+  <link rel="stylesheet" href="ui.css" />
+  <style>body { width: 320px; padding: 14px; }</style>
+</head>
+<body>
+  <h1>VibeVault</h1>
+  <label class="row">Collect conversations <input type="checkbox" id="global" /></label>
+  <div id="sites"></div>
+  <h2>This tab</h2>
+  <p id="tab" class="muted">Not a claude.ai / chatgpt.com conversation.</p>
+  <div class="actions"><button id="exclude" hidden></button></div>
+  <h2>Delivery</h2>
+  <dl>
+    <dt>Queued</dt><dd id="queued">–</dd>
+    <dt>Last success</dt><dd id="success">–</dd>
+    <dt>Last error</dt><dd id="error">–</dd>
+  </dl>
+  <div class="actions">
+    <button id="flush">Send now</button>
+    <button id="options">Settings</button>
+    <a id="server" href="#" target="_blank" hidden>Open VibeVault</a>
+  </div>
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

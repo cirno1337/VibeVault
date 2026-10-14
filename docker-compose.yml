@@ -1,0 +1,37 @@
+# VibeVault: single container, SQLite on a named volume.
+#   cp .env.example .env   # then set the tokens
+#   docker compose up -d --build
+# Exposure: published on 127.0.0.1 only. To reach it over Tailscale/LAN deliberately, set
+# VIBEVAULT_BIND (e.g. your tailscale0 address). Do NOT publish it to the internet.
+services:
+  vibevault:
+    build: .
+    image: vibevault:local
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${VIBEVAULT_BIND:-127.0.0.1}:${VIBEVAULT_PORT:-8787}:8787"
+    networks: [default, proxy]   # external reverse-proxy network (e.g. Caddy + SSO); remove if unused
+    volumes:
+      - vibevault-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8787/readyz', timeout=4).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    # The worker runs inside the API process by default. To run it separately, set
+    # VIBEVAULT_WORKER_ENABLED=false here and add a second service running `vibevault worker`.
+
+volumes:
+  vibevault-data:
+
+networks:
+  proxy:
+    external: true

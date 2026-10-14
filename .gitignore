@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+data/
+*.db
+*.db-wal
+*.db-shm
+.env
+!.env.example
+node_modules/
+frontend/dist/
+dist/
+build/
+*.log
+# raw browser page saves (private conversations): only scrubbed fixtures are committed
+extension/test/fixtures/_raw/
+extension/test/fixtures/**/*_files/
+# local secrets and agent builds
+*.token
+nexus-agent/
+nexus-agent-*.tar.gz
