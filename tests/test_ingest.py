@@ -132,6 +132,24 @@ class TestSessionsAndProjects:
         assert evs[0]["project_id"] == pid
         assert client.get("/api/v1/sessions?unresolved=true", headers=admin).json()["total"] == 1
 
+    def test_sessionless_event_resolved_via_alias(self, client, ingest_h, admin):
+        # Events without a session are retro-assigned too (Event's PK is seq, not the string id).
+        post(client, ingest_h, ev(1, session=None, external_event_id="x-1", project={"key": "/srv/orphan"}),
+             ev(2, session=None, external_event_id="x-2", project={"key": "/srv/other"}))
+
+        def project_ids():
+            with client.app_ref.state.session_factory() as db:
+                return dict(db.execute(select(m.Event.external_event_id, m.Event.project_id).where(m.Event.session_id.is_(None))).all())
+
+        assert project_ids() == {"x-1": None, "x-2": None}
+        r = client.post("/api/v1/projects", json={"name": "Orphan", "aliases": ["/srv/orphan/"]}, headers=admin)
+        assert r.status_code == 201, r.text
+        assert project_ids() == {"x-1": r.json()["id"], "x-2": None}
+        pid = client.post("/api/v1/projects", json={"name": "Other"}, headers=admin).json()["id"]
+        r = client.post(f"/api/v1/projects/{pid}/aliases", json={"alias": "/srv/other"}, headers=admin)
+        assert r.status_code < 300, r.text
+        assert project_ids()["x-2"] == pid
+
     def test_alias_conflict(self, client, admin):
         a = client.post("/api/v1/projects", json={"name": "A", "aliases": ["/x"]}, headers=admin).json()
         b = client.post("/api/v1/projects", json={"name": "B"}, headers=admin).json()

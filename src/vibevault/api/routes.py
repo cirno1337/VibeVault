@@ -121,8 +121,7 @@ def _assign_alias(db: DbSession, project: m.Project, alias: str) -> int:
             sess.project_id = project.id
             db.execute(update(m.Event).where(m.Event.session_id == sess.id).values(project_id=project.id))
             n += 1
-    for ev_id in db.scalars(select(m.Event.id).where(m.Event.project_id.is_(None), m.Event.session_id.is_(None), m.Event.project_hint.is_not(None))):
-        e = db.get(m.Event, ev_id)
+    for e in db.scalars(select(m.Event).where(m.Event.project_id.is_(None), m.Event.session_id.is_(None), m.Event.project_hint.is_not(None))):
         if normalize_alias(e.project_hint or "") == norm:
             e.project_id = project.id
     return n
