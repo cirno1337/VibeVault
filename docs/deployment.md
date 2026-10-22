@@ -1,7 +1,6 @@
 # Deployment
 
-> The Docker image has **not been built or run** in the development sandbox (no Docker daemon); `docker compose config` validates.
-> Expect to fix small things on the first real build. Nothing has been deployed to your server.
+> A CI workflow (`.github/workflows/ci.yml`) builds the image and smoke-tests `/readyz`; it was added recently and has not run yet.
 
 ## Docker Compose (Ubuntu Server 24.04)
 ```bash
@@ -14,6 +13,13 @@ docker compose ps        # healthy once /readyz returns 200 (migrations at head)
 * Migrations run automatically at start. For a manual step: `docker compose run --rm vibevault vibevault migrate`.
 * The port is published on `127.0.0.1:8787` only. To use it from your PC via Tailscale, set `VIBEVAULT_BIND` to the server's Tailscale IP (or front it with `tailscale serve`); do not forward it to the internet. There is no TLS in the app; Tailscale provides encryption, or terminate TLS on your own proxy.
 * Resource use is small (one Python process, SQLite). No inference runs on the server.
+
+### External Reverse-Proxy Network (opt-in)
+By default, VibeVault attaches only to Compose's `default` network and binds to `127.0.0.1`. If running behind an external reverse proxy (e.g. Caddy, Traefik, nginx), use the opt-in `docker-compose.proxy.yml` override:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.proxy.yml up -d --build
+```
+This attaches the service to an external network named `proxy` (customizable via `VIBEVAULT_PROXY_NETWORK` in your `.env` or environment).
 
 ## Local development
 See README. `VIBEVAULT_DATABASE_URL` defaults to `sqlite:///./data/vibevault.db`.

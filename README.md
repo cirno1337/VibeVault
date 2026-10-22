@@ -50,8 +50,14 @@ cp .env.example .env     # set VIBEVAULT_ADMIN_TOKEN / VIBEVAULT_INGEST_TOKENS
 docker compose up -d --build
 ```
 
-Published on `127.0.0.1` only by default. See [docs/deployment.md](docs/deployment.md) for Tailscale
-exposure, backup/restore, retention and upgrades.
+Published on `127.0.0.1` only by default. To attach to an external reverse-proxy network (e.g. Caddy, Traefik), use the opt-in override:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.proxy.yml up -d --build
+```
+(Network name defaults to `proxy`, configurable via `VIBEVAULT_PROXY_NETWORK`.)
+
+See [docs/deployment.md](docs/deployment.md) for Tailscale
+exposure, reverse-proxy integration, backup/restore, retention and upgrades.
 
 ## Collect from Claude Code
 
@@ -92,7 +98,7 @@ their own `device_id`. See [docs/collectors/claude-code.md](docs/collectors/clau
 | Web UI (dashboard, projects, sessions, timeline, search, event evidence, jobs, sources) | ✅ implemented; verified in headless Chromium against a live server |
 | Claude Code collector (hooks + incremental transcript + spool + delivery) | ✅ implemented; tested on **synthetic** fixtures only |
 | AI extraction pipeline + provider layer (local/Groq/Gemini/DeepSeek via OpenAI-compatible API) | ⚠️ implemented and tested with fakes/mock transport; **never run against a real model or service** |
-| Docker image / Compose (optional external reverse-proxy network) | ⚠️ written, Compose config validated; **image not built in CI** (no CI yet) |
+| Docker image / Compose (optional external reverse-proxy network) | ⚠️ Compose config validated; the reverse-proxy network is opt-in (`docker-compose.proxy.yml`); CI workflow (`.github/workflows/ci.yml`: image build + `/readyz` smoke test) added but **has not run yet** |
 | Browser extension (claude.ai chat + Claude Code on the web, chatgpt.com; Manifest V3) | ✅ implemented; adapters tested on scrubbed real page saves (2026-10); live capture into the server verified in Brave |
 | Real-machine Claude Code install, real transcripts, Tailscale, llama.cpp | ❌ not done (needs your machines) |
 | Wake-on-LAN, remote shutdown, remote command execution | ❌ deliberately not implemented |

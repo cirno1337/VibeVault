@@ -1,0 +1,15 @@
+# Opt-in override: attach VibeVault to an external reverse-proxy network (e.g. Caddy, Traefik, nginx).
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.proxy.yml up -d --build
+#
+# Configure the external network name with VIBEVAULT_PROXY_NETWORK (defaults to "proxy").
+services:
+  vibevault:
+    networks:
+      - default
+      - proxy
+
+networks:
+  proxy:
+    external: true
+    name: ${VIBEVAULT_PROXY_NETWORK:-proxy}

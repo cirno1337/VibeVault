@@ -3,6 +3,7 @@
 #   docker compose up -d --build
 # Exposure: published on 127.0.0.1 only. To reach it over Tailscale/LAN deliberately, set
 # VIBEVAULT_BIND (e.g. your tailscale0 address). Do NOT publish it to the internet.
+# To attach to an external reverse-proxy network, see docker-compose.proxy.yml.
 services:
   vibevault:
     build: .
@@ -11,7 +12,7 @@ services:
     env_file: .env
     ports:
       - "${VIBEVAULT_BIND:-127.0.0.1}:${VIBEVAULT_PORT:-8787}:8787"
-    networks: [default, proxy]   # external reverse-proxy network (e.g. Caddy + SSO); remove if unused
+    networks: [default]
     volumes:
       - vibevault-data:/data
     read_only: true
@@ -31,7 +32,3 @@ services:
 
 volumes:
   vibevault-data:
-
-networks:
-  proxy:
-    external: true
