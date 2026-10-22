@@ -16,13 +16,14 @@ from .. import models as m
 from ..ingest import ingest_batch, normalize_alias
 from ..schemas import ACTORS, EVENT_TYPES, BatchIn, BatchResult, sanitize_validation_errors
 from ..search import EmptyQuery, search_events
-from .deps import Principal, get_db, require_admin, require_ingest
+from .deps import Principal, authenticate, get_db, require_admin, require_ingest, require_reader
 from .serializers import derived_out, event_out, iso, job_out, project_out, session_out
 
 router = APIRouter(prefix="/api/v1")
 Db = Annotated[DbSession, Depends(get_db)]
 Admin = Annotated[Principal, Depends(require_admin)]
 Ingest = Annotated[Principal, Depends(require_ingest)]
+Reader = Annotated[Principal, Depends(require_reader)]  # admin or read-only token (GET only)
 
 
 def _now() -> datetime:
@@ -51,7 +52,7 @@ Offset = Annotated[int, Query(ge=0)]
 
 # ------------------------------------------------------------------ identity
 @router.get("/me", tags=["auth"])
-def me(p: Annotated[Principal, Depends(require_ingest)]):
+def me(p: Annotated[Principal, Depends(authenticate)]):
     return {"name": p.name, "scope": p.scope, "version": __version__}
 
 
@@ -128,7 +129,7 @@ def _assign_alias(db: DbSession, project: m.Project, alias: str) -> int:
 
 
 @router.get("/projects", tags=["projects"])
-def list_projects(db: Db, _: Admin, limit: Limit = 50, offset: Offset = 0):
+def list_projects(db: Db, _: Reader, limit: Limit = 50, offset: Offset = 0):
     total = db.scalar(select(func.count()).select_from(m.Project)) or 0
     rows = db.scalars(select(m.Project).options(joinedload(m.Project.aliases)).order_by(m.Project.name).limit(limit).offset(offset)).unique().all()
     stats = _project_stats(db, [r.id for r in rows])
@@ -158,7 +159,7 @@ def create_project(db: Db, p: Admin, body: ProjectCreate):
 
 
 @router.get("/projects/{project_id}", tags=["projects"])
-def get_project(project_id: int, db: Db, _: Admin):
+def get_project(project_id: int, db: Db, _: Reader):
     proj = db.get(m.Project, project_id)
     if proj is None:
         raise _404("Project")
@@ -303,7 +304,7 @@ def _session_query(project_id, source, device, since, until, unresolved, q_title
 
 @router.get("/sessions", tags=["sessions"])
 def list_sessions(
-    db: Db, _: Admin, project_id: int | None = None, source: str | None = None, device: str | None = None,
+    db: Db, _: Reader, project_id: int | None = None, source: str | None = None, device: str | None = None,
     since: AwareDatetime | None = None, until: AwareDatetime | None = None, unresolved: bool = False,
     title: str | None = None, limit: Limit = 50, offset: Offset = 0,
 ):
@@ -324,7 +325,7 @@ def list_sessions(
 
 
 @router.get("/sessions/{session_id}", tags=["sessions"])
-def get_session(session_id: int, db: Db, _: Admin):
+def get_session(session_id: int, db: Db, _: Reader):
     s = db.scalar(select(m.Session).options(joinedload(m.Session.source), joinedload(m.Session.device), joinedload(m.Session.project)).where(m.Session.id == session_id))
     if s is None:
         raise _404("Session")
@@ -372,7 +373,7 @@ def delete_session(session_id: int, db: Db, p: Admin):
 
 @router.get("/sessions/{session_id}/events", tags=["sessions"])
 def session_events(
-    session_id: int, db: Db, _: Admin, event_type: str | None = None, include_superseded: bool = False,
+    session_id: int, db: Db, _: Reader, event_type: str | None = None, include_superseded: bool = False,
     limit: Annotated[int, Query(ge=1, le=1000)] = 200, offset: Offset = 0,
 ):
     if db.get(m.Session, session_id) is None:
@@ -410,7 +411,7 @@ def _events_with_related(db: DbSession, rows: list[m.Event]) -> list[dict[str, A
 # ------------------------------------------------------------------ events
 @router.get("/events", tags=["events"])
 def list_events(
-    db: Db, _: Admin, project_id: int | None = None, source: str | None = None,
+    db: Db, _: Reader, project_id: int | None = None, source: str | None = None,
     event_type: Annotated[str | None, Query(pattern=f"^({'|'.join(EVENT_TYPES)})$")] = None,
     actor: Annotated[str | None, Query(pattern=f"^({'|'.join(ACTORS)})$")] = None,
     since: AwareDatetime | None = None, until: AwareDatetime | None = None,
@@ -437,7 +438,7 @@ def list_events(
 
 
 @router.get("/events/{event_id}", tags=["events"])
-def get_event(event_id: str, db: Db, _: Admin):
+def get_event(event_id: str, db: Db, _: Reader):
     e = db.scalar(select(m.Event).options(joinedload(m.Event.source), joinedload(m.Event.device)).where(m.Event.id == event_id))
     if e is None:
         raise _404("Event")
@@ -463,7 +464,7 @@ def get_event(event_id: str, db: Db, _: Admin):
 # ------------------------------------------------------------------ search
 @router.get("/search", tags=["search"])
 def search(
-    db: Db, _: Admin, q: Annotated[str, Query(min_length=1, max_length=500)], project_id: int | None = None,
+    db: Db, _: Reader, q: Annotated[str, Query(min_length=1, max_length=500)], project_id: int | None = None,
     source: str | None = None, event_type: str | None = None, actor: str | None = None,
     since: AwareDatetime | None = None, until: AwareDatetime | None = None,
     include_superseded: bool = False, limit: Annotated[int, Query(ge=1, le=100)] = 20, offset: Offset = 0,

@@ -10,6 +10,7 @@ from vibevault.config import Settings
 
 ADMIN = "admin-token-0123456789abcdef"
 INGEST = "ingest-token-0123456789abcdef"
+READ = "read-token-0123456789abcdef"
 T0 = datetime(2026, 1, 15, 10, 0, 0, tzinfo=UTC)
 
 
@@ -18,6 +19,7 @@ def make_settings(tmp_path, **kw) -> Settings:
         database_url=f"sqlite:///{tmp_path / 'test.db'}",
         admin_token=ADMIN,
         ingest_tokens=f"laptop={INGEST}",
+        read_tokens=f"khoj={READ}",
         worker_enabled=False,  # tests drive the worker explicitly
         log_json=False,
         _env_file=None,
@@ -70,3 +72,8 @@ def post(client, headers, *events):
 def worker(client):
     app = client.app_ref
     return app.state.worker
+
+
+@pytest.fixture
+def read_h():
+    return {"Authorization": f"Bearer {READ}"}

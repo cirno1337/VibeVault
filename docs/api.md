@@ -6,6 +6,7 @@ Base path `/api/v1`. Interactive OpenAPI at `/docs`, machine-readable at `/opena
 **Auth**: `Authorization: Bearer <token>`.
 * `admin` token (`VIBEVAULT_ADMIN_TOKEN`): everything. Used by the web UI.
 * `ingest` tokens (`VIBEVAULT_INGEST_TOKENS=name=token,…`): `POST /events`, `POST /events/batch`, `GET /me` only. The name is recorded as `ingested_by`.
+* `read` tokens (`VIBEVAULT_READ_TOKENS=name=token,…`): read-only — `GET /projects`, `/sessions` (+`/{id}`, `/{id}/events`), `/events` (+`/{id}`), `/search`, `/me`. No writes, jobs, `derived`, `audit`, `stats`, `devices` or `providers` (403). Intended for integrations such as Khoj. Ingest tokens cannot read.
 
 **Errors** are always `{"error": {"code", "message", "details"?}}`. Validation details contain `loc/msg/type` only, never the input value.
 

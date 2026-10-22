@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     admin_token: SecretStr | None = None
     # Ingest tokens: "name=token,name2=token2". Can only POST events.
     ingest_tokens: SecretStr | None = None
+    # Read tokens: "name=token,...". Read-only: GET projects/sessions/events/search (no writes, jobs, audit, derived).
+    read_tokens: SecretStr | None = None
 
     # --- request limits ---------------------------------------------------
     max_body_bytes: int = 8_000_000
@@ -89,7 +91,24 @@ class Settings(BaseSettings):
         for name, tok in self.parsed_ingest_tokens().items():
             if len(tok) < MIN_TOKEN_LENGTH or tok.lower() in _PLACEHOLDERS:
                 raise ValueError(f"ingest token '{name}' is too short or a placeholder")
+        for name, tok in self.parsed_read_tokens().items():
+            if len(tok) < MIN_TOKEN_LENGTH or tok.lower() in _PLACEHOLDERS:
+                raise ValueError(f"read token '{name}' is too short or a placeholder")
         return self
+
+    def parsed_read_tokens(self) -> dict[str, str]:
+        """Return {token_name: token} for read-only tokens (names are used for audit logs only)."""
+        out: dict[str, str] = {}
+        raw = self.read_tokens.get_secret_value() if self.read_tokens else ""
+        for part in raw.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            if "=" not in part:
+                raise ValueError("VIBEVAULT_READ_TOKENS entries must look like name=token")
+            name, tok = part.split("=", 1)
+            out[name.strip()] = tok.strip()
+        return out
 
     def parsed_ingest_tokens(self) -> dict[str, str]:
         """Return {token_name: token}. Names are used for audit logs only."""

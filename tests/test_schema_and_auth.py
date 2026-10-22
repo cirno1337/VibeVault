@@ -41,6 +41,20 @@ class TestAuth:
             assert client.get(path, headers=ingest_h).status_code == 403, path
         assert client.get("/api/v1/stats", headers=admin).status_code == 200
 
+    def test_read_token_is_read_only(self, client, read_h, admin, ingest_h):
+        for path in ("/api/v1/projects", "/api/v1/sessions", "/api/v1/events", "/api/v1/search?q=x"):
+            assert client.get(path, headers=read_h).status_code == 200, path
+        # no writes, no admin-only reads
+        assert client.post("/api/v1/projects", headers=read_h, json={"name": "x"}).status_code == 403
+        assert client.post("/api/v1/events", headers=read_h, json=ev()).status_code == 403
+        assert client.post("/api/v1/events/batch", headers=read_h, json={"events": [ev()]}).status_code == 403
+        assert client.post("/api/v1/jobs", headers=read_h, json={}).status_code == 403
+        assert client.get("/api/v1/me", headers=read_h).status_code == 200
+        for path in ("/api/v1/audit", "/api/v1/stats", "/api/v1/jobs", "/api/v1/derived", "/api/v1/providers", "/api/v1/devices"):
+            assert client.get(path, headers=read_h).status_code == 403, path
+        # ingest tokens still cannot read
+        assert client.get("/api/v1/sessions", headers=ingest_h).status_code == 403
+
     def test_me(self, client, ingest_h, admin):
         assert client.get("/api/v1/me", headers=ingest_h).json()["scope"] == "ingest"
         assert client.get("/api/v1/me", headers=admin).json()["scope"] == "admin"

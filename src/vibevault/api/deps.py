@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session as DbSession
 @dataclass(frozen=True)
 class Principal:
     name: str
-    scope: str  # "admin" | "ingest"
+    scope: str  # "admin" | "ingest" | "read"
 
 
 def get_db(request: Request) -> Iterator[DbSession]:
@@ -38,6 +38,9 @@ def authenticate(request: Request) -> Principal:
     for name, tok in s.parsed_ingest_tokens().items():
         if hmac.compare_digest(token.encode(), tok.encode()) and found is None:
             found = Principal(f"ingest:{name}", "ingest")
+    for name, tok in s.parsed_read_tokens().items():
+        if hmac.compare_digest(token.encode(), tok.encode()) and found is None:
+            found = Principal(f"read:{name}", "read")
     if found is None:
         raise HTTPException(401, detail={"code": "invalid_token", "message": "Invalid token"})
     return found
@@ -50,4 +53,13 @@ def require_admin(p: Principal = Depends(authenticate)) -> Principal:
 
 
 def require_ingest(p: Principal = Depends(authenticate)) -> Principal:
+    if p.scope == "read":
+        raise HTTPException(403, detail={"code": "forbidden", "message": "Read-only token cannot write"})
     return p  # admin or ingest scope
+
+
+def require_reader(p: Principal = Depends(authenticate)) -> Principal:
+    """Admin or read-only token; ingest tokens stay write-only."""
+    if p.scope not in ("admin", "read"):
+        raise HTTPException(403, detail={"code": "forbidden", "message": "Read or admin token required"})
+    return p
